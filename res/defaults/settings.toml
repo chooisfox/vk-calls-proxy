@@ -1,0 +1,13 @@
+[application]
+name = "{project_name}"
+authors = ["{developer_name} <{developer_email}>"]
+mode = 0
+
+[server]
+ws_port = 9000
+
+[client]
+ws_port = 9000
+socks_port = 1080
+max_retries = 3
+cookie_file = "/tmp/{project_name}-cookies"

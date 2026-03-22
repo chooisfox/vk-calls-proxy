@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=@PROJECT_APPLICATION_NAME@
+Comment=@PROJECT_DESCRIPTION@
+Exec=@PROJECT_NAME@
+Icon=@PROJECT_NAME@
+Terminal=false
+Type=Application
+Categories=Utility;

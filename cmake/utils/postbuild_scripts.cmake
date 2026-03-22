@@ -1,0 +1,70 @@
+find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy)
+find_program(CPPCHECK_EXECUTABLE NAMES cppcheck)
+find_program(STRIP_EXECUTABLE NAMES ${CMAKE_STRIP} strip)
+find_program(UPX_EXECUTABLE NAMES upx)
+
+if(NOT CMAKE_CONFIGURATION_TYPES AND CMAKE_BUILD_TYPE)
+    set(DO_STRIP OFF)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(DO_STRIP ON)
+    endif()
+
+    set(POST_BUILD_COMMANDS "")
+    set(POST_BUILD_COMMENT "")
+
+    if(ENABLE_CLANG_TIDY)
+        if(CLANG_TIDY_EXECUTABLE)
+            message(STATUS "Found clang-tidy, enabling static analysis.")
+            set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE};--checks=-modernize*;--warnings-as-errors=*;--exclude-header-filter=(fmt|spdlog|ostr|stdout_color_sinks|stdout_sinks)")
+        else()
+            message(WARNING "clang-tidy not found. C++ static analysis will not be performed.")
+        endif()
+    endif()
+
+    if(ENABLE_CPPCHECK)
+        if(CPPCHECK_EXECUTABLE)
+            set(POST_BUILD_COMMENT "Running Cppcheck...")
+            list(APPEND POST_BUILD_COMMANDS COMMAND ${CPPCHECK_EXECUTABLE} --project=${CMAKE_BINARY_DIR}/compile_commands.json --enable=all --check-level=exhaustive --inconclusive --force --inline-suppr --suppress=*:*_deps/*)
+        else()
+            message(WARNING "Cppcheck not found. C++ static analysis will not be performed.")
+        endif()
+    endif()
+
+    if(DO_STRIP OR ENABLE_STRIP)
+        if(STRIP_EXECUTABLE)
+            message(STATUS "Stripping is enabled.")
+            set(POST_BUILD_COMMENT "Stripping binary...")
+
+            if(APPLE)
+                list(APPEND POST_BUILD_COMMANDS COMMAND ${STRIP_EXECUTABLE} $<TARGET_FILE:${PROJECT_NAME}>)
+            else()
+                list(APPEND POST_BUILD_COMMANDS COMMAND ${STRIP_EXECUTABLE} --strip-all $<TARGET_FILE:${PROJECT_NAME}>)
+            endif()
+        else()
+            message(WARNING "The 'strip' executable was not found. The binary will not be stripped.")
+        endif()
+    endif()
+
+    if(ENABLE_UPX_COMPRESS)
+        if(UPX_EXECUTABLE)
+            message(STATUS "UPX compression is enabled.")
+            if(POST_BUILD_COMMENT)
+                set(POST_BUILD_COMMENT "${POST_BUILD_COMMENT} and compressing with UPX...")
+            else()
+                set(POST_BUILD_COMMENT "Compressing with UPX...")
+            endif()
+            list(APPEND POST_BUILD_COMMANDS COMMAND ${UPX_EXECUTABLE} -9 $<TARGET_FILE:${PROJECT_NAME}>)
+        else()
+            message(WARNING "The 'upx' executable was not found. The binary will not be compressed.")
+        endif()
+    endif()
+endif()
+
+if(POST_BUILD_COMMANDS)
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        ${POST_BUILD_COMMANDS}
+        COMMENT "${POST_BUILD_COMMENT}"
+        VERBATIM
+    )
+endif()
