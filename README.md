@@ -43,4 +43,4 @@ Just enter this in any local app that supports SOCKS5: `127.0.0.1:<port you sele
 ## P.S.
 
 * Yeah, cmake scripts take more space than c++ code, I know. I like cmake, what are you going to do about it? 
-* Can't compile on Ubunut, you know what? Go fuck yourself. You can either install real linux distro, or edit cmake scripts manually.
+* Can't compile on Ubunut? You know what? Go fuck yourself. You can either install real linux distro, or edit cmake scripts manually.
