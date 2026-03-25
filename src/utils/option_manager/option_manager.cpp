@@ -3,6 +3,10 @@
 #include "settings_manager.hpp"
 #include "spdlog_wrapper.hpp"
 
+#include <ranges>
+#include <sstream>
+#include <vector>
+
 namespace UTILS
 {
 
