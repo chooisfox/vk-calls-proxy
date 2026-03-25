@@ -82,10 +82,14 @@
   }
 
   function connectWebSocket() {
-    if (activeWS) activeWS.close();
+    if (activeWS) {
+      activeWS.onclose = null;
+      activeWS.close();
+    }
     activeWS = new WebSocket(WS_URL);
     activeWS.binaryType = "arraybuffer";
     activeWS.onclose = () => {
+      log("[SYSTEM] Local WS connection lost. Reconnecting in 1s...");
       setTimeout(() => {
         if (dcOpen) connectWebSocket();
       }, 1000);

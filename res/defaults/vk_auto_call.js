@@ -1,8 +1,12 @@
 (() => {
+  "use strict";
   if (window.__vkAutoCallInstalled) return;
   window.__vkAutoCallInstalled = true;
 
   const log = (...args) => console.log("[VK-AUTO]", ...args);
+
+  let activeSupervisor = null;
+  let isMonitoringCall = false;
 
   function inviteUserToCall(targetUser) {
     if (!targetUser) return;
@@ -20,7 +24,6 @@
       let searchInput = document.querySelector(
         '[data-testid="calls_add_participants_search"]',
       );
-
       if (!searchInput) {
         let addBtn = document.querySelector(
           '[data-testid="call_management_toolbar_button_add_to_call"]',
@@ -40,14 +43,11 @@
       let numericId = targetUser.replace(/\D/g, "");
 
       if (isIdSearch) {
-        log("Searching by ID: " + numericId);
         let targetRow = document.querySelector(
           `div[role="button"][data-id="${numericId}"]`,
         );
-
         if (targetRow) {
           clearInterval(inviteInterval);
-          log("Found user by ID, clicking...");
           targetRow.click();
           clickConfirmAdd();
         } else {
@@ -59,13 +59,9 @@
               (el.innerText.includes("Показать еще") ||
                 el.innerText.includes("Показать ещё")),
           );
-          if (showMoreBtns.length > 0) {
-            log('Clicking "Show more friends"...');
-            showMoreBtns[0].click();
-          }
+          if (showMoreBtns.length > 0) showMoreBtns[0].click();
         }
       } else {
-        log("Searching by Name: " + targetUser);
         const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
           window.HTMLInputElement.prototype,
           "value",
@@ -86,26 +82,25 @@
 
         if (targetItem) {
           clearInterval(inviteInterval);
-          log("Found user by Name, clicking...");
           let row = targetItem.closest('[role="button"]');
           if (row) row.click();
           clickConfirmAdd();
         }
       }
     }, 500);
+  }
 
-    function clickConfirmAdd() {
-      let confirmInterval = setInterval(() => {
-        let confirmBtns = Array.from(
-          document.querySelectorAll(".CallsModalFooter button"),
-        ).filter((b) => b.innerText.includes("Добавить") && !b.disabled);
-        if (confirmBtns.length > 0) {
-          confirmBtns[0].click();
-          clearInterval(confirmInterval);
-          log("User successfully invited!");
-        }
-      }, 500);
-    }
+  function clickConfirmAdd() {
+    let confirmInterval = setInterval(() => {
+      let confirmBtns = Array.from(
+        document.querySelectorAll(".CallsModalFooter button"),
+      ).filter((b) => b.innerText.includes("Добавить") && !b.disabled);
+      if (confirmBtns.length > 0) {
+        confirmBtns[0].click();
+        clearInterval(confirmInterval);
+        log("User successfully invited!");
+      }
+    }, 500);
   }
 
   function extractLinkAndInvite(targetUser) {
@@ -138,7 +133,6 @@
                 '[data-testid="calls_modal_header_close_button"]',
               ) || document.querySelector(".CallsModalHeader__cross");
             if (closeBtn) closeBtn.click();
-
             setTimeout(() => inviteUserToCall(targetUser), 500);
           }
         }, 500);
@@ -148,58 +142,118 @@
 
   window.addEventListener("message", (event) => {
     if (typeof event.data !== "string") return;
+
     if (event.data.startsWith("START_CREATOR")) {
-      const parts = event.data.split("|");
-      const targetUser = parts.length > 1 ? parts[1] : "";
+      const targetUser = event.data.split("|")[1] || "";
+      log("Initializing Creator Supervisor loop...");
 
-      if (
-        window.location.href.includes("/call/join/") ||
-        document.querySelector('[data-testid="calls_call_main_modal_root"]')
-      ) {
-        extractLinkAndInvite(targetUser);
-        return;
-      }
+      if (activeSupervisor) clearInterval(activeSupervisor);
+      isMonitoringCall = false;
 
-      let createBtn = document.querySelector(
-        '[data-testid="calls_main_page_button_create_call"]',
-      );
-      if (createBtn) {
-        createBtn.click();
-        let modalInterval = setInterval(() => {
-          let startBtn = document.querySelector(
-            '[data-testid="calls_create_call_modal_start_call_button"]',
-          );
-          if (startBtn) {
-            startBtn.click();
-            clearInterval(modalInterval);
+      activeSupervisor = setInterval(() => {
+        let isCallUIActive = document.querySelector(
+          '[data-testid="calls_call_main_modal_root"]',
+        );
+
+        if (isCallUIActive) {
+          if (!isMonitoringCall) {
+            isMonitoringCall = true;
+            log("Call is active. Ensuring target is invited...");
             extractLinkAndInvite(targetUser);
           }
-        }, 500);
-      } else {
-        window.location.href = "https://vk.com/calls";
-      }
-    } else if (event.data === "START_CLIENT_USER") {
-      if (!window.location.href.includes("section=current")) {
-        window.location.href = "https://vk.com/calls?section=current";
-        return;
-      }
-      let joinBtn = document.querySelector(
-        '[data-testid="calls_current_calls_join"]',
-      );
-      if (joinBtn) {
-        joinBtn.click();
-        let confirmInterval = setInterval(() => {
-          let confirmBtn = document.querySelector(
-            '[data-testid="calls_preview_join_button"]',
-          );
-          if (confirmBtn) {
-            confirmBtn.click();
-            clearInterval(confirmInterval);
+          return;
+        }
+
+        if (isMonitoringCall && !isCallUIActive) {
+          log("[RECONNECT] Call ended or was canceled. Re-hosting...");
+          isMonitoringCall = false;
+          if (window.location.pathname !== "/calls") {
+            window.location.href = "https://vk.com/calls";
           }
-        }, 500);
-      } else {
-        setTimeout(() => window.location.reload(), 3000);
-      }
+          return;
+        }
+
+        let createBtn = document.querySelector(
+          '[data-testid="calls_main_page_button_create_call"]',
+        );
+        if (createBtn) {
+          createBtn.click();
+          let modalInterval = setInterval(() => {
+            let startBtn = document.querySelector(
+              '[data-testid="calls_create_call_modal_start_call_button"]',
+            );
+            if (startBtn) {
+              startBtn.click();
+              clearInterval(modalInterval);
+            }
+          }, 500);
+        } else if (!window.location.pathname.startsWith("/call")) {
+          window.location.href = "https://vk.com/calls";
+        }
+      }, 2000);
+    } else if (event.data === "STOP_CREATOR") {
+      log("Halting Creator Supervisor loop.");
+      if (activeSupervisor) clearInterval(activeSupervisor);
+      activeSupervisor = null;
+      isMonitoringCall = false;
+    } else if (event.data === "START_CLIENT_USER") {
+      log("Initializing Client Auto-Join Supervisor loop...");
+
+      if (activeSupervisor) clearInterval(activeSupervisor);
+      isMonitoringCall = false;
+
+      activeSupervisor = setInterval(() => {
+        let isCallUIActive = document.querySelector(
+          '[data-testid="calls_call_main_modal_root"]',
+        );
+
+        if (isCallUIActive) {
+          if (!isMonitoringCall) {
+            log("Successfully joined the active call.");
+            isMonitoringCall = true;
+          }
+          return;
+        }
+
+        if (isMonitoringCall && !isCallUIActive) {
+          log(
+            "[RECONNECT] Call canceled or dropped by host. Awaiting new call...",
+          );
+          isMonitoringCall = false;
+          if (!window.location.href.includes("section=current")) {
+            window.location.href = "https://vk.com/calls?section=current";
+          }
+          return;
+        }
+
+        let joinBtn = document.querySelector(
+          '[data-testid="calls_current_calls_join"]',
+        );
+        if (joinBtn) {
+          joinBtn.click();
+          log("Incoming call detected. Accepting connection...");
+
+          let confirmInterval = setInterval(() => {
+            let confirmBtn = document.querySelector(
+              '[data-testid="calls_preview_join_button"]',
+            );
+            if (confirmBtn) {
+              confirmBtn.click();
+              clearInterval(confirmInterval);
+            }
+          }, 500);
+        } else if (
+          !window.location.href.includes("section=current") &&
+          !window.location.pathname.startsWith("/call")
+        ) {
+          window.location.href = "https://vk.com/calls?section=current";
+        }
+      }, 1500);
+    } else if (event.data === "STOP_CLIENT_USER") {
+      log("Halting Client Auto-Join Supervisor loop.");
+      if (activeSupervisor) clearInterval(activeSupervisor);
+      activeSupervisor = null;
+      isMonitoringCall = false;
     } else if (event.data === "START_CLIENT_ANON") {
       let joinInterval = setInterval(() => {
         let input = document.querySelector(

@@ -9,12 +9,29 @@
 namespace APP::UI
 {
 
+enum class ServiceState
+{
+	Stopped,
+	RunningClient,
+	RunningCreator
+};
+
+enum class CallAutomationState
+{
+	Idle,
+	CreatorHosting,
+	ClientAutoJoining,
+	ClientAnonJoining
+};
+
 class MainWindow final : public QMainWindow
 {
 	Q_OBJECT
 public:
 	explicit MainWindow(QWidget* parent = nullptr);
 	~MainWindow() override;
+
+	void triggerAutoStart();
 
 public slots:
 	void appendLog(const QString& msg, const QString& color = "#B0B0B0");
@@ -29,15 +46,17 @@ private slots:
 	void onTriggerClientAnonJoin();
 
 private:
-	SettingsPanel*	  m_settingsPanel;
-	CallControlPanel* m_callControlPanel;
-	BrowserPanel*	  m_browserPanel;
-	QTextEdit*		  m_logView;
+	void changeServiceState(ServiceState newState);
+	void changeCallState(CallAutomationState newState);
+	void stopAllAutomation();
 
-	bool m_isServerRunning {false};
-	bool m_isCreatorAutoHostActive {false};
-	bool m_isClientAutoJoinActive {false};
-	bool m_isClientAnonJoinActive {false};
+	SettingsPanel*	  m_settingsPanel {nullptr};
+	CallControlPanel* m_callControlPanel {nullptr};
+	BrowserPanel*	  m_browserPanel {nullptr};
+	QTextEdit*		  m_logView {nullptr};
+
+	ServiceState		m_serviceState {ServiceState::Stopped};
+	CallAutomationState m_callState {CallAutomationState::Idle};
 };
 
 } // namespace APP::UI

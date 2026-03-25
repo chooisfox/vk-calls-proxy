@@ -42,7 +42,7 @@ bool RelayServer::start(uint16_t wsPort, uint16_t socksPort)
 	connect(m_wsServer, &QWebSocketServer::newConnection, this, &RelayServer::onNewWsConnection, Qt::UniqueConnection);
 	connect(m_socksServer, &QTcpServer::newConnection, this, &RelayServer::onNewSocksConnection, Qt::UniqueConnection);
 
-	emit logMessage(QString("Служба Relay запущена. SOCKS5: %1 | WS: %2").arg(socksPort).arg(wsPort));
+	emit logMessage(QString("Service Relay started. SOCKS5: %1 | WS: %2").arg(socksPort).arg(wsPort));
 	return true;
 }
 
@@ -80,7 +80,7 @@ void RelayServer::onNewWsConnection()
 	connect(m_activeWs, &QWebSocket::disconnected, this, &RelayServer::onWsDisconnected);
 
 	m_isWsPaused = false;
-	emit logMessage("WebRTC туннель успешно подключен к локальному релею.");
+	emit logMessage("WebRTC tunnel successfully connected to local relay.");
 	emit vpnStatusChanged(true);
 }
 
@@ -209,7 +209,7 @@ void RelayServer::sendFrame(uint32_t connId, API::PROTOCOL::MsgType type, const 
 
 void RelayServer::onWsDisconnected()
 {
-	emit logMessage("WebRTC туннель разорван.");
+	emit logMessage("WebRTC tunnel aborted.");
 	emit vpnStatusChanged(false);
 
 	m_isWsPaused = false;

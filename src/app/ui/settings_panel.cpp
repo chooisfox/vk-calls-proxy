@@ -46,6 +46,7 @@ SettingsPanel::SettingsPanel(QWidget* parent) : QWidget(parent)
 	connect(m_wsPortSpin, &QSpinBox::editingFinished, this, &SettingsPanel::onSettingsChanged);
 	connect(m_socksPortSpin, &QSpinBox::editingFinished, this, &SettingsPanel::onSettingsChanged);
 	connect(m_cbDebugMode, &QCheckBox::toggled, this, &SettingsPanel::debugToggled);
+	connect(m_cbDebugMode, &QCheckBox::toggled, this, &SettingsPanel::onSettingsChanged);
 	connect(m_btnToggleServer, &QPushButton::clicked, this, &SettingsPanel::toggleServerRequested);
 }
 
@@ -61,7 +62,14 @@ void SettingsPanel::loadSettings()
 
 	m_wsPortSpin->setValue(static_cast<int>(settings->get_setting<int64_t>(mode == 0 ? "client.ws_port" : "server.ws_port", 9000)));
 	m_socksPortSpin->setValue(static_cast<int>(settings->get_setting<int64_t>("client.socks_port", 1080)));
+
+	bool is_debug = settings->get_setting<bool>("application.debug", false);
+	m_cbDebugMode->blockSignals(true);
+	m_cbDebugMode->setChecked(is_debug);
+	m_cbDebugMode->blockSignals(false);
+
 	emit modeChanged(mode);
+	emit debugToggled(is_debug);
 }
 
 void SettingsPanel::onSettingsChanged()
@@ -78,6 +86,7 @@ void SettingsPanel::onSettingsChanged()
 	{
 		settings->set_setting<int64_t>("server.ws_port", m_wsPortSpin->value());
 	}
+	settings->set_setting<bool>("application.debug", m_cbDebugMode->isChecked());
 	settings->save_settings();
 }
 

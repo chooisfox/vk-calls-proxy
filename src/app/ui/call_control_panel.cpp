@@ -15,7 +15,7 @@ CallControlPanel::CallControlPanel(QWidget* parent) : QWidget(parent)
 	m_inviteLinkBox->setStyleSheet("background-color: #2E2E2E; color: #E5C07B; font-weight: bold; border: 1px solid #5C5C42; padding: 4px;");
 
 	m_inviteTargetBox = new QLineEdit();
-	m_inviteTargetBox->setPlaceholderText("Clien app user (e.g. 101010101 or Имя Фамилия)");
+	m_inviteTargetBox->setPlaceholderText("Clien app user (e.g. 101010101 or Name Surname)");
 	m_inviteTargetBox->setStyleSheet("background-color: #2E2E2E; color: #61AFEF; font-weight: bold; border: 1px solid #5C5C42; padding: 4px;");
 
 	m_btnCreatorHost = new QPushButton("Create & Host Call");

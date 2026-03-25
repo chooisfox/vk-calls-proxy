@@ -2,6 +2,7 @@
 #include "main_window.hpp"
 
 #include <QApplication>
+#include <memory>
 
 namespace APP::APPLICATION
 {
@@ -12,8 +13,11 @@ public:
 	Application(int& argc, char** argv);
 	int exec();
 
+	bool initializeManagers(int argc, char** argv);
+	void triggerAutoStart();
+
 private:
-	UI::MainWindow m_mainWindow;
+	std::unique_ptr<UI::MainWindow> m_mainWindow;
 };
 
 } // namespace APP::APPLICATION
